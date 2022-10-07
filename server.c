@@ -6,6 +6,18 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <semaphore.h>
+#include <pthread.h>
+
+
+/*Warming nas linhas 118 - 198 - 201 - 127 - 135*/
+
+// Varivaeis para o Semáforo
+sem_t x, y;
+pthread_t tid;
+int sem_wait(sem_t *sem);
+int readercount = 0;
+
 
 typedef struct cont
 {
@@ -22,6 +34,11 @@ void verificarQtdePesquisa(char pesquisaNome[100], int sock, FILE *fp, int sz);
 void exibeContatoPesquisado(Contato *contato, int sock, char pesquisaNome[100]);
 int contaIguais(Contato *contato, char pesquisaNome[100]);
 void chamaExibeContatoPesquisado(char pesquisaNome[100], int sock, FILE *fp, int sz);
+
+// Threads leitor e escritor
+void* reader(void* param);
+void* writer(void* param);
+
 
 int main(int argc, char const *argv[])
 {
@@ -100,18 +117,26 @@ int main(int argc, char const *argv[])
     {
     case 1:
       // cadastrar contato
-  
+      if(pthread_create(&contato, NULL,writer, new_socket)!= 0){
+        printf("Erro Criação Thread!!!");
+      }
       read(new_socket, &contato, sizeof(contato));
       insertContato(contato, fp);
       fflush(fp);
       break;
     case 2:
       // exibir contatos
+      if(pthread_create(&contato, NULL,reader, new_socket)!= 0){
+          printf("Erro Criação Thread!!!");
+      }
       sz = getFileSize(fp);
       exibeContatos(fp, sz, new_socket);
       fflush(stdout);
       break;
     case 3:
+      if(pthread_create(&contato, NULL,reader, new_socket)!= 0){
+          printf("Erro Criação Thread!!!");
+      }
       read(new_socket, pesquisaNome, sizeof(pesquisaNome));
       //printf("Pesquisando contato pelo nome.....");
       //printf("\n%s\n", pesquisaNome);
@@ -275,4 +300,60 @@ void exibeContatoPesquisado(Contato *contato, int sock, char pesquisaNome[100]){
     fflush(stdout);
     //printf("SEND\n");
   }
+}
+
+// Leitores e Escritores
+
+/* sem_wait() - bloqueia o semáforo apontado por sem 
+Se o valor do semáforo for maior que zero, o decremento 
+prossegue e a função retorna, imediatamente. */
+
+
+// Leitor
+void* reader(void* param)
+{
+    // Bloqueia o semáforo
+    sem_wait(&x);
+    readercount++;
+ 
+    if (readercount == 1)
+        sem_wait(&y);
+ 
+    // Desbloqueia o semáforo
+    sem_post(&x);
+ 
+    printf("\n%d Letiro entrou", readercount);
+ 
+    sleep(5);
+ 
+    // Bloqueia o semáforo
+    sem_wait(&x);
+    readercount--;
+ 
+    if (readercount == 0) {
+        sem_post(&y);
+    }
+ 
+    // Bloqueia o semáforo
+    sem_post(&x);
+ 
+    printf("\n%d Leitor saiu",readercount + 1);
+    pthread_exit(NULL);
+}
+ 
+// Escritor
+void* writer(void* param)
+{
+    printf("\nO escritor está tentando entrar");
+ 
+    // Lock the semaphore
+    sem_wait(&y);
+ 
+    printf("\nEscritor entrou");
+ 
+    // Unlock the semaphore
+    sem_post(&y);
+ 
+    printf("\nEscritou Saiu");
+    pthread_exit(NULL);
 }
