@@ -9,7 +9,6 @@
 #include <semaphore.h>
 #include <pthread.h>
 
-
 /*Warming nas linhas 118 - 198 - 201 - 127 - 135*/
 
 // Varivaeis para o Semáforo
@@ -48,6 +47,7 @@ int main(int argc, char const *argv[])
   int opt = 1;
   int addrlen = sizeof(address);
   Contato contato;
+
 
   // Creating socket file descriptor
   if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -88,14 +88,7 @@ int main(int argc, char const *argv[])
     exit(EXIT_FAILURE);
   }
 
-  // read(new_socket, idade, sizeof(idade));
-  // send(new_socket, nome, sizeof(nome), 0);
-  // read(new_socket, endereco, sizeof(endereco));
-  // valread = read(new_socket, buffer, sizeof(buffer));
-  /*valread2 = read(new_socket, buffer.idsade, sizeof(buffer.idade));
-  valread3 = read(new_socket, buffer.endereco, sizeof(buffer.endereco));*/
-
-  // Criaão arquivo
+  // Criação arquivo
   FILE *fp;
   fp = fopen("dados.dat", "rb+");
 
@@ -106,18 +99,20 @@ int main(int argc, char const *argv[])
 
   int sz, op;
   char pesquisaNome[100];
+  pthread_t threads;
+  int *pclient = malloc(sizeof(int));
+  *pclient = new_socket;
 
   do
   {
     char data[1024];
     read(new_socket, &op, sizeof(op));
 
-
     switch (op)
     {
     case 1:
       // cadastrar contato
-      if(pthread_create(&contato, NULL,writer, new_socket)!= 0){
+      if(pthread_create(&threads, NULL,writer, pclient)!= 0){
         printf("Erro Criação Thread!!!");
       }
       read(new_socket, &contato, sizeof(contato));
@@ -126,7 +121,7 @@ int main(int argc, char const *argv[])
       break;
     case 2:
       // exibir contatos
-      if(pthread_create(&contato, NULL,reader, new_socket)!= 0){
+      if(pthread_create(&threads, NULL,reader, pclient)!= 0){
           printf("Erro Criação Thread!!!");
       }
       sz = getFileSize(fp);
@@ -134,7 +129,7 @@ int main(int argc, char const *argv[])
       fflush(stdout);
       break;
     case 3:
-      if(pthread_create(&contato, NULL,reader, new_socket)!= 0){
+      if(pthread_create(&threads, NULL,reader, pclient)!= 0){
           printf("Erro Criação Thread!!!");
       }
       read(new_socket, pesquisaNome, sizeof(pesquisaNome));
