@@ -9,8 +9,6 @@
 #include <semaphore.h>
 #include <pthread.h>
 
-/*Warming nas linhas 118 - 198 - 201 - 127 - 135*/
-
 // Varivaeis para o Semáforo
 sem_t x, y;
 pthread_t tid;
