@@ -22,7 +22,7 @@ typedef struct cone
 } Conexao;
 
 
-#define NTHREADS 3
+#define NTHREADS 2
 
 int exibeMenu();
 int getFileSize();
@@ -39,15 +39,14 @@ int main(int argc, char const *argv[]){
   strcpy(conexao.porta, argv[2]);
   pthread_t thread_id[NTHREADS];
 
-  for (int i = 0; i < NTHREADS; i++)
-    {
+  for (int i = 0; i < NTHREADS; i++){
+        printf("\nThread %d\n",i+1);
         pthread_create(&thread_id[i], NULL, threadF, &conexao);
     }
 
-    for (int j = 0; j < NTHREADS; j++)
-    {
-
-        pthread_join(thread_id[j], NULL);
+  for (int j = 0; j < NTHREADS; j++){
+      printf("Finalizando Thread %d",j+1);
+      pthread_join(thread_id[j], NULL);
     }
 
   return 0;
@@ -79,6 +78,7 @@ void * threadF(void * param){
   {
     printf("\nConnection Failed \n");
   }
+
   Contato contato;
   int i,op, sz, cont=0, qtde=0;
   char pesquisaNome[100];
@@ -96,7 +96,6 @@ void * threadF(void * param){
       {
         case 1:
           getContato(&contato);
-
           send(sock, &contato, sizeof(contato), 0);
           break;
         case 2:
@@ -129,8 +128,6 @@ void * threadF(void * param){
              printf("--------------------\n");
           }
 
-          break;
-        case 4:
           break;
         default:
           printf("\nOpcao invalida!!!");
