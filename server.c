@@ -36,7 +36,7 @@ typedef struct thread
   FILE *fp;
 } thread;
 
-int getFileSize();
+int getFileSize(FILE *fp);
 void insertContato(Contato contato, FILE *fp);
 void exibeContato(Contato *contato, int sock);
 void exibeContatos(FILE *fp, int sz, int sock);
