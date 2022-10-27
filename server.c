@@ -12,9 +12,8 @@
 // Varivaeis para o Semáforo
 //#define NTHREADS 2
 
-sem_t x, y;
+sem_t reader, writer;
 pthread_t tid;
-int sem_wait(sem_t *sem);
 int readercount = 0;
 
 typedef struct cont
@@ -46,23 +45,22 @@ int contaIguais(Contato *contato, char pesquisaNome[100]);
 void chamaExibeContatoPesquisado(char pesquisaNome[100], int sock, FILE *fp, int sz);
 void *threadF(void *param);
 
-// Threads leitor e escritor
-void *reader(void *param);
-void *writer(void *param);
-
 int main(int argc, char const *argv[])
 {
+  // y - leitores
+  // x - escritores
+
+  sem_init(&writer,0,1);
+  sem_init(&reader,0,1);
 
   Conexao conexao;
-  strcpy(conexao.ip, argv[1]);
-  strcpy(conexao.porta, argv[2]);
+  strcpy(conexao.porta, argv[1]);
 
-  int server_fd, new_socket;
+  int server_fd;
   struct sockaddr_in address;
   int opt = 1;
   int addrlen = sizeof(address);
-  Contato contato;
-
+  
   FILE *fp;
   fp = fopen("dados.dat", "rb+");
 
@@ -89,7 +87,7 @@ int main(int argc, char const *argv[])
 
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
-  address.sin_port = htons(atoi(conexao.ip));
+  address.sin_port = htons(atoi(conexao.porta));
 
   // Forcefully attaching socket to the port 8080
   if (bind(server_fd, (struct sockaddr *)&address,
@@ -278,9 +276,6 @@ void *threadF(void *param)
 
   int sz, op;
   char pesquisaNome[100];
-  pthread_t threads;
-  int *pclient = malloc(sizeof(int));
-
   do
   {
     read(t->sock, &op, sizeof(op));
@@ -289,22 +284,24 @@ void *threadF(void *param)
     {
     case 1:
       // cadastrar contato
-
+      sem_wait(&writer);
       read(t->sock, &contato, sizeof(contato));
       insertContato(contato, t->fp);
       fflush(t->fp);
-
+      sem_post(&writer);
+      pthread_exit(NULL);
       break;
     case 2:
       // exibir contatos
       sz = getFileSize(t->fp);
       exibeContatos(t->fp, sz, t->sock);
       fflush(stdout);
+      printf("\n%d Leitor saiu", readercount + 1);
       break;
     case 3:
       read(t->sock, pesquisaNome, sizeof(pesquisaNome));
-      // printf("Pesquisando contato pelo nome.....");
-      // printf("\n%s\n", pesquisaNome);
+      printf("Pesquisando contato pelo nome.....");
+      printf("\n%s\n", pesquisaNome);
       sz = getFileSize(t->fp);
       verificarQtdePesquisa(pesquisaNome, t->sock, t->fp, sz);
       fflush(stdout);
@@ -316,17 +313,8 @@ void *threadF(void *param)
       printf("Opção Invalida!\n");
     }
   } while (op != 4);
-
-  /*printf("%s\n", buffer.idade);
-  printf("%s\n", buffer.endereco);*/
-
-  // send(new_socket, hello, strlen(hello), 0);
-  // printf("Hello message sent\n");
-
   // closing the connected socket
   close(t->sock);
-  // closing the listening socket
-  
   return 0;
 }
 
@@ -334,53 +322,3 @@ void *threadF(void *param)
 /* sem_wait() - bloqueia o semáforo apontado por sem
 Se o valor do semáforo for maior que zero, o decremento
 prossegue e a função retorna, imediatamente. */
-
-// Leitor
-void *reader(void *param)
-{
-  // Bloqueia o semáforo
-  sem_wait(&x);
-  readercount++;
-
-  if (readercount == 1)
-    sem_wait(&y);
-
-  // Desbloqueia o semáforo
-  sem_post(&x);
-
-  printf("\n%d Letiro entrou", readercount);
-
-  sleep(5);
-
-  // Bloqueia o semáforo
-  sem_wait(&x);
-  readercount--;
-
-  if (readercount == 0)
-  {
-    sem_post(&y);
-  }
-
-  // Bloqueia o semáforo
-  sem_post(&x);
-
-  printf("\n%d Leitor saiu", readercount + 1);
-  pthread_exit(NULL);
-}
-
-// Escritor
-void *writer(void *param)
-{
-  printf("\nO escritor está tentando entrar");
-
-  // Lock the semaphore
-  sem_wait(&y);
-
-  printf("\nEscritor entrou");
-
-  // Unlock the semaphore
-  sem_post(&y);
-
-  printf("\nEscritou Saiu");
-  pthread_exit(NULL);
-}
